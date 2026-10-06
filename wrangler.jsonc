@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "equipment-bookings",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "c2949f91-7a97-4328-8068-38ab17d009f6",
       "migrations_dir": "migrations"
     }
   ]
