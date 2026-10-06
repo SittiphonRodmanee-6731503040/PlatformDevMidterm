@@ -1,0 +1,48 @@
+@startuml
+title Campus Equipment Booking API - Entity Relationship Diagram
+
+hide methods
+hide stereotypes
+
+entity "equipment" as equipment {
+  * id : TEXT <<PK>>
+  --
+  * name : TEXT <<NOT NULL>>
+  * location : TEXT <<NOT NULL>>
+}
+
+entity "bookings" as bookings {
+  * id : TEXT <<PK>>
+  --
+  * equipment_id : TEXT <<FK, NOT NULL>>
+  * borrower_name : TEXT <<NOT NULL>>
+  * start_at : TEXT <<NOT NULL>>
+  * end_at : TEXT <<NOT NULL>>
+  purpose : TEXT
+  * created_at : TEXT <<NOT NULL>>
+  --
+  CHECK (start_at < end_at)
+}
+
+equipment ||--o{ bookings : "has"
+
+note right of bookings
+  Foreign key:
+  bookings.equipment_id
+  references equipment.id
+
+  Overlap rule:
+  existing.start_at < new.end_at
+  AND
+  existing.end_at > new.start_at
+
+  Intervals are half-open [start, end),
+  so back-to-back bookings are allowed.
+end note
+
+note bottom of equipment
+  Seeded equipment:
+  eq-1, eq-2, eq-3
+end note
+
+@enduml
