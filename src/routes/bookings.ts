@@ -25,18 +25,6 @@ async function equipmentExists(db: D1Database, equipmentId: string): Promise<boo
   return (await db.prepare("SELECT 1 FROM equipment WHERE id = ?").bind(equipmentId).first()) !== null;
 }
 
-async function hasConflict(
-  db: D1Database,
-  input: BookingInput,
-  id: string,
-): Promise<boolean> {
-  return (await db.prepare(`
-    SELECT id FROM bookings
-    WHERE equipment_id = ? AND start_at < ? AND end_at > ? AND id != ?
-    LIMIT 1
-  `).bind(input.equipmentId, input.endAt, input.startAt, id).first()) !== null;
-}
-
 bookingRoutes.get("/", async (c) => {
   const equipmentId = c.req.query("equipmentId");
   const query = equipmentId
@@ -57,14 +45,28 @@ bookingRoutes.post("/", async (c) => {
     return c.json({ error: "equipment not found" }, 404);
   }
   const id = crypto.randomUUID();
-  if (await hasConflict(c.env.DB, input, id)) {
+  const result = await c.env.DB.prepare(`
+    INSERT INTO bookings (id, equipment_id, borrower_name, start_at, end_at, purpose, created_at)
+    SELECT ?, ?, ?, ?, ?, ?, ?
+    WHERE NOT EXISTS (
+      SELECT 1 FROM bookings
+      WHERE equipment_id = ? AND start_at < ? AND end_at > ?
+    )
+  `).bind(
+    id,
+    input.equipmentId,
+    input.borrowerName,
+    input.startAt,
+    input.endAt,
+    input.purpose,
+    new Date().toISOString(),
+    input.equipmentId,
+    input.endAt,
+    input.startAt,
+  ).run();
+  if (result.meta.changes === 0) {
     return c.json({ error: "booking overlaps an existing booking" }, 409);
   }
-  await c.env.DB.prepare(`
-    INSERT INTO bookings (id, equipment_id, borrower_name, start_at, end_at, purpose, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).bind(id, input.equipmentId, input.borrowerName, input.startAt, input.endAt,
-    input.purpose, new Date().toISOString()).run();
   return c.json(await getBooking(c.env.DB, id), 201);
 });
 
@@ -76,14 +78,28 @@ bookingRoutes.patch("/:id", async (c) => {
   if (!(await equipmentExists(c.env.DB, input.equipmentId))) {
     return c.json({ error: "equipment not found" }, 404);
   }
-  if (await hasConflict(c.env.DB, input, id)) {
-    return c.json({ error: "booking overlaps an existing booking" }, 409);
-  }
-  await c.env.DB.prepare(`
+  const result = await c.env.DB.prepare(`
     UPDATE bookings
     SET equipment_id = ?, borrower_name = ?, start_at = ?, end_at = ?, purpose = ?
-    WHERE id = ?
-  `).bind(input.equipmentId, input.borrowerName, input.startAt, input.endAt, input.purpose, id).run();
+    WHERE id = ? AND NOT EXISTS (
+      SELECT 1 FROM bookings
+      WHERE equipment_id = ? AND start_at < ? AND end_at > ? AND id != ?
+    )
+  `).bind(
+    input.equipmentId,
+    input.borrowerName,
+    input.startAt,
+    input.endAt,
+    input.purpose,
+    id,
+    input.equipmentId,
+    input.endAt,
+    input.startAt,
+    id,
+  ).run();
+  if (result.meta.changes === 0) {
+    return c.json({ error: "booking overlaps an existing booking" }, 409);
+  }
   return c.json(await getBooking(c.env.DB, id));
 });
 

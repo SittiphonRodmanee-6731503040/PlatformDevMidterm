@@ -41,8 +41,8 @@ security review.
    ```
 
 3. Copy the returned database ID into
-   [wrangler.jsonc](./wrangler.jsonc), replacing
-   `REPLACE_WITH_D1_DATABASE_ID`.
+   [wrangler.jsonc](./wrangler.jsonc). The current production configuration
+   already contains the configured database ID.
 
 4. Apply the schema and seed data:
 
