@@ -1,12 +1,12 @@
 import { Hono } from "hono";
-import { db } from "../db.js";
+import type { AppEnv } from "../env.js";
 import type { Equipment } from "../types.js";
 
-export const equipmentRoutes = new Hono();
+export const equipmentRoutes = new Hono<AppEnv>();
 
-equipmentRoutes.get("/", (c) => {
-  const rows = db
+equipmentRoutes.get("/", async (c) => {
+  const { results } = await c.env.DB
     .prepare("SELECT id, name, location FROM equipment ORDER BY id")
-    .all() as Equipment[];
-  return c.json(rows);
+    .all<Equipment>();
+  return c.json(results);
 });

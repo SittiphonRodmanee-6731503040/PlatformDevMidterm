@@ -1,5 +1,8 @@
 # Schema
 
+The schema is applied through the D1 migration in
+`migrations/0001_initial_schema.sql`; it is not created during a request.
+
 `equipment (1) ──── (*) bookings`
 
 ```sql

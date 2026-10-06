@@ -1,5 +1,7 @@
 # API Contract
 
+The API runs as a Cloudflare Worker with a D1 database binding named `DB`.
+
 All errors use `{ "error": "message" }`. Dates are normalized to ISO 8601 UTC.
 Intervals are half-open: an end time equal to another booking's start is allowed.
 
